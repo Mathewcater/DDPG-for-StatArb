@@ -1,6 +1,5 @@
 """
-Environment
-Statistical arbitrage example
+Statistical Arbitrage Environment
 """
 # imports
 import numpy as np

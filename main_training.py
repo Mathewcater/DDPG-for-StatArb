@@ -164,6 +164,7 @@ def DDPG(algo_params: dict, env: Environment):
         noise_process.reset()
         rews = []
         
+        # populate replay buffer 
         for _ in range(env.params["Ndt"]):
             
             # take action according to policy with exploratory noise
@@ -172,7 +173,6 @@ def DDPG(algo_params: dict, env: Environment):
 
             # get new state and reward
             new_state, rew = env.step(curr_state, action) 
-            print(f'rew: {rew}')
             rews.append(rew.detach())
 
             # add transition to buffer (all inputs get detached in the add method)
@@ -181,20 +181,21 @@ def DDPG(algo_params: dict, env: Environment):
             # update state
             curr_state = new_state
 
-            # sample mini-batch of transitions 
-            trans_curr_states, trans_acts, trans_rews, trans_new_states = replay_buffer.sample()
-            
-            # compute targets
-            targets = trans_rews + critic_target(T.cat((trans_new_states, actor_target(trans_new_states).detach()), -1)).detach()
-            
-            # update main networks
-            if m % algo_params["main_update_num_eps"] == 0:
-                update_critic_main(targets, trans_curr_states, trans_acts, critic_main, algo_params["critic_main_num_epochs"])     
-            
-            update_actor_main(critic_main, actor_main, trans_curr_states)
+        # sample mini-batch of transitions 
+        trans_curr_states, trans_acts, trans_rews, trans_new_states = replay_buffer.sample()
         
+        # compute targets
+        targets = trans_rews + critic_target(T.cat((trans_new_states, actor_target(trans_new_states).detach()), -1)).detach()
+         
+        # update main networks        
+        update_actor_main(critic_main, actor_main, trans_curr_states)
+        
+        # if m % algo_params["main_update_num_eps"] == 0:
+        update_critic_main(targets, trans_curr_states, trans_acts, critic_main, algo_params["critic_main_num_epochs"])     
+            
+            
+        # update target networks 
         if m % algo_params["target_update_num_eps"] == 0:
-            # update target networks 
             update_target_net(critic_main, critic_target, 1.0)
             update_target_net(actor_main, actor_target, 1.0)
         

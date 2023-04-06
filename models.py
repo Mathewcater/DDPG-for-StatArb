@@ -1,9 +1,11 @@
 """
 Models
+
 Policy: two fully-connected ANNs (main and target)
 Q-function: two fully-connected ANNs (main and target)
 
 Helper Objects
+
 Replay buffer
 OU exploratory noise 
 
@@ -178,7 +180,6 @@ class ReplayBuffer:
             
         # add new transition
         self.buffer.append(T.cat((curr_state.detach(), action.detach(), rew.detach(), new_state.detach())))
-        print(f'T.stack(self.buffer): {T.stack(self.buffer)}')
         
     def sample(self):
         """Sample a mini-batch of transitions from the replay buffer
