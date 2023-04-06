@@ -2,18 +2,14 @@
 import numpy as np
 import copy
 import torch as T
-from pdb import set_trace
+import pdb
 from models import *
 from envs import *
-import torch.nn.functional as F
-from torch.distributions.categorical import Categorical
 from torch.nn import MSELoss 
 from tqdm import tqdm
 from hyperparams import *
 from utils import *
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # For reproducibility 
 T.manual_seed(54321)
@@ -64,9 +60,9 @@ def plot_current_policy(env: Environment, actor_main: PolicyANN, episode_num: in
     fig.suptitle(f'Temporal Evolution of Learned ANN Policies; Episode No.: {episode_num}')
     fig.savefig(f'Learned_Policy_Episode_No_{episode_num}.pdf')
     
-
-
-def update_critic_main(targets: T.tensor, trans_new_states: T.tensor, trans_acts: T.tensor, \
+    
+    
+def update_critic_main(targets: T.tensor, trans_curr_states: T.tensor, trans_acts: T.tensor, \
                            critic_main: Q_ANN, num_epochs):
     """
     Update main critic network using labels produced by target network
@@ -81,7 +77,7 @@ def update_critic_main(targets: T.tensor, trans_new_states: T.tensor, trans_acts
     """
      
     for m in range(num_epochs):
-        input = critic_main(T.cat((trans_new_states.detach().clone(), trans_acts.detach().clone()), -1))
+        input = critic_main(T.cat((trans_curr_states, trans_acts), -1))
         critic_main.optimizer.zero_grad()
         loss_function = MSELoss()
         loss = loss_function(targets, input)
@@ -94,6 +90,8 @@ def update_critic_main(targets: T.tensor, trans_new_states: T.tensor, trans_acts
             
         if critic_main.scheduler.get_last_lr()[0] >= 5e-4:
             critic_main.scheduler.step()
+    
+    
     
 def update_actor_main(critic_main: Q_ANN, actor_main: PolicyANN, curr_states: T.tensor):
     """ 
@@ -157,7 +155,7 @@ def DDPG(algo_params: dict, env: Environment):
     
     # initialize replay buffer and exploratory noise process
     replay_buffer = ReplayBuffer(algo_params) 
-    noise_process = OUNoise() 
+    noise_process = OUNoise(kappa=algo_params["noise_rev_int"], sigma=algo_params["noise_vol"]) 
     avg_rews = []
     
     for m in tqdm(range(algo_params["num_eps"])):
@@ -170,14 +168,15 @@ def DDPG(algo_params: dict, env: Environment):
             
             # take action according to policy with exploratory noise
             action = T.clamp(actor_main(curr_state) + noise_process.noise(),\
-                              env.params["min_q"], env.params["max_q"])  
+                                    env.params["min_q"], env.params["max_q"])  
 
             # get new state and reward
-            new_state, rew = env.step(T.cat((curr_state, action))) 
+            new_state, rew = env.step(curr_state, action) 
+            print(f'rew: {rew}')
             rews.append(rew.detach())
-        
-            # add transition to buffer 
-            replay_buffer.add(curr_state, action, rew, new_state) # all get detached in the add method
+
+            # add transition to buffer (all inputs get detached in the add method)
+            replay_buffer.add(curr_state, action, rew, new_state)  
             
             # update state
             curr_state = new_state
@@ -190,7 +189,7 @@ def DDPG(algo_params: dict, env: Environment):
             
             # update main networks
             if m % algo_params["main_update_num_eps"] == 0:
-                update_critic_main(targets, trans_new_states, trans_acts, critic_main, algo_params["critic_main_num_epochs"])     
+                update_critic_main(targets, trans_curr_states, trans_acts, critic_main, algo_params["critic_main_num_epochs"])     
             
             update_actor_main(critic_main, actor_main, trans_curr_states)
         

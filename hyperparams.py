@@ -3,7 +3,6 @@ Hyperparameters
 Initialization of all hyperparameters
 """
 
-
 # initialize parameters for the environment and algorithm
 def init_params():
     # parameters for the model
@@ -34,6 +33,8 @@ def init_params():
                 'hidden_size_critic' : 50, # number of hidden nodes in the neural net associated with the critic
                 'num_layers_actor' : 5, # number of layers in the neural net associated with actor
                 'num_layers_critic' : 10, # number of layers in the neural net associated with critic
+                'noise_rev_int': 4.25, # mean reversion intensity of exploratory noise
+                'noise_vol': 2.5, # volatility of exploratory noise
                 } 
 
     return env_params, algo_params

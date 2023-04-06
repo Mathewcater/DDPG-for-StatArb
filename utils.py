@@ -17,12 +17,3 @@ myellow = (0.8,0.8,0)
 mwhite = (1.,1.,1.)
 cmap = LinearSegmentedColormap.from_list('beamer_cmap', [mred, mwhite, mblue])
 colors = [mblue, mred, mgreen, myellow, mpurple, mgray]
-
-
-# define directory function
-def directory(file):
-    if os.path.exists(file):
-        return
-    else:
-        os.mkdir(file)
-    return

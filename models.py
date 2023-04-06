@@ -142,10 +142,10 @@ class Q_ANN(nn.Module):
 class OUNoise:
     """Ornstein-Uhlenbeck exploratory noise.
     """
-    def __init__(self, action_dim=1, mu=0.0, theta=4.25, sigma=2.5):
+    def __init__(self, action_dim=1, mu=0.0, kappa=4.25, sigma=2.5):
         self.action_dim = action_dim
         self.mu = mu
-        self.theta = theta
+        self.kappa = kappa
         self.sigma = sigma
         self.reset()
     
@@ -154,7 +154,7 @@ class OUNoise:
         
     def noise(self):
         x = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * T.randn(len(x))
+        dx = self.kappa * (self.mu - x) + self.sigma * T.randn(len(x))
         self.state = x + dx
         return self.state
         
@@ -175,8 +175,10 @@ class ReplayBuffer:
         # if buffer full, then deque a transition
         if len(self.buffer) == self.buffer_capacity:
             self.buffer = self.buffer[1:] 
+            
         # add new transition
         self.buffer.append(T.cat((curr_state.detach(), action.detach(), rew.detach(), new_state.detach())))
+        print(f'T.stack(self.buffer): {T.stack(self.buffer)}')
         
     def sample(self):
         """Sample a mini-batch of transitions from the replay buffer
@@ -184,6 +186,7 @@ class ReplayBuffer:
         # if buffer smaller than desired batch size, sample entire buffer
         if len(self.buffer) < self.buffer_batch_size:
             transitions = T.stack(self.buffer)
+            
         # otherwise, uniformly sample mini-batch of transitions
         else:
             probs = (T.ones(len(self.buffer))/len(self.buffer)).repeat((self.buffer_batch_size, 1)) 

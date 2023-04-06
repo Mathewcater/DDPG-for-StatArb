@@ -45,13 +45,11 @@ class Environment():
         return T.tensor([t0, x0, qn1])   
     
     # simulation engine
-    def step(self, state_act: T.tensor):
+    def step(self, curr_state, action):
         
         # time modification -- step forward
-        time_t = state_act[0]
-        x_t = state_act[1] 
-        q_tm1 = state_act[2] 
-        q_t = state_act[3] 
+        time_t, x_t, q_tm1 = curr_state[0], curr_state[1], curr_state[2] 
+        q_t = action  
         
         time_tp1 = time_t + 1
 
@@ -68,7 +66,7 @@ class Environment():
         
         # reward -- change of book value of shares with transaction costs
         reward_t = q_t*(x_tp1 - x_t) - (self.params["phi"]*T.pow(q_t - q_tm1, 2))
-        reward = reward_t.unsqueeze(dim=-1)
+        reward = reward_t
         new_state = T.tensor([time_tp1, x_tp1, q_t])
         
         return new_state, reward
