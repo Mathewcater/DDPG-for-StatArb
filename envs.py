@@ -1,0 +1,76 @@
+"""
+Environment
+Statistical arbitrage example
+"""
+# imports
+import numpy as np
+import torch as T
+from hyperparams import *
+from torch.distributions.uniform import Uniform
+import pdb
+
+
+class Environment():
+    # constructor
+    def __init__(self, params: dict):
+        # parameters and spaces
+        self.params = params
+        self.spaces = {'t_space' : np.arange(params["Ndt"]), # time space / periods 
+                      's_space' : np.linspace(params["theta"]-2*params["sigma"]/np.sqrt(2*params["kappa"]),
+                                  params["theta"]+2*params["sigma"]/np.sqrt(2*params["kappa"]), 51), # price space
+                      'q_space' : np.linspace(params["min_q"], params["max_q"], 51), # inventory space
+                      'u_space' : np.linspace(params["min_u"], params["max_u"], 21)} # action space
+
+    # initialization of the environment with its true initial state
+    def reset(self, Nsims=1):
+        t0 = T.zeros(Nsims)
+        x0 = T.normal(self.params["theta"],
+                        self.params["sigma"]/np.sqrt(2*self.params["kappa"]),
+                        size=(Nsims,))
+        x0 = T.minimum(T.maximum(x0, min(self.spaces["s_space"])*T.ones(1)), max(self.spaces["s_space"])*T.ones(1)) # ensures x0 in valid range
+        qn1 = T.zeros(Nsims)
+
+        return T.tensor([t0, x0, qn1])
+
+    
+    def random_reset(self, Nsims=1):
+        t0 = T.zeros(Nsims)
+        x0 = T.normal(self.params["theta"],
+                        self.params["sigma"]/np.sqrt(2*self.params["kappa"]),
+                        size=(Nsims,))
+        x0 = T.minimum(T.maximum(x0, min(self.spaces["s_space"])*T.ones(1)), max(self.spaces["s_space"])*T.ones(1)) # ensures x0 in valid range
+        qn1 = Uniform(T.tensor([self.params["min_q"]]).float(), T.tensor([self.params["max_q"]]).float()).sample()
+
+
+        return T.tensor([t0, x0, qn1])   
+    
+    # simulation engine
+    def step(self, state_act: T.tensor):
+        
+        # time modification -- step forward
+        time_t = state_act[0]
+        x_t = state_act[1] 
+        q_tm1 = state_act[2] 
+        q_t = state_act[3] 
+        
+        time_tp1 = time_t + 1
+
+        # price modification -- OU process
+        sizes = q_tm1.shape
+        dt = self.params["T"]/self.params["Ndt"]
+        eta = self.params["sigma"] * \
+                np.sqrt((1 - np.exp(-2*self.params["kappa"]*dt)) / (2*self.params["kappa"]))
+        x_tp1 = x_t + self.params["kappa"]*(self.params["theta"] - x_t)*dt + self.params["sigma"]*np.sqrt(dt)*T.randn(sizes)
+        
+        # self.params["theta"] + \
+        #         (x_t-self.params["theta"]) * np.exp(-self.params["kappa"]*dt) + \
+        #         eta*T.randn(sizes, device=self.device)
+        
+        # reward -- change of book value of shares with transaction costs
+        reward_t = q_t*(x_tp1 - x_t) - (self.params["phi"]*T.pow(q_t - q_tm1, 2))
+        reward = reward_t.unsqueeze(dim=-1)
+        new_state = T.tensor([time_tp1, x_tp1, q_t])
+        
+        return new_state, reward
+
+    
