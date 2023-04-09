@@ -31,7 +31,7 @@ class Environment():
 
         return T.tensor([t0, x0, qn1])
 
-    
+        # initialization of the environment with its random initial state
     def random_reset(self, Nsims=1):
         t0 = T.zeros(Nsims)
         x0 = T.normal(self.params["theta"],
@@ -57,17 +57,13 @@ class Environment():
         dt = self.params["T"]/self.params["Ndt"]
         eta = self.params["sigma"] * \
                 np.sqrt((1 - np.exp(-2*self.params["kappa"]*dt)) / (2*self.params["kappa"]))
-        x_tp1 = x_t + self.params["kappa"]*(self.params["theta"] - x_t)*dt + self.params["sigma"]*np.sqrt(dt)*T.randn(sizes)
+        x_tp1 = self.params["theta"] + \
+                (x_t-self.params["theta"]) * np.exp(-self.params["kappa"]*dt) + \
+                eta*T.randn(sizes, device=self.device)
         
-        # self.params["theta"] + \
-        #         (x_t-self.params["theta"]) * np.exp(-self.params["kappa"]*dt) + \
-        #         eta*T.randn(sizes, device=self.device)
-        
-        # reward -- change of book value of shares with transaction costs
+        # reward -- change of book value of shares with transaction costs (attempting to recover bang-bang control)
         reward_t = q_t*(x_tp1 - x_t) - (self.params["phi"]*T.pow(q_t - q_tm1, 2))
         reward = reward_t
         new_state = T.tensor([time_tp1, x_tp1, q_t])
         
         return new_state, reward
-
-    
