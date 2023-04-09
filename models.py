@@ -7,8 +7,7 @@ Q-function: two fully-connected ANNs (main and target)
 Helper Objects
 
 Replay buffer
-OU exploratory noise 
-
+Stationary Gaussian Exploratory Noise
 """
 # imports
 
