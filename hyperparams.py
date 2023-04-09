@@ -27,10 +27,10 @@ def init_params():
                 'update_every': 50, # number of episodes elapsed before updating
                 'lr_actor' : 0.004, # learning rate of the actor networks (main and target)
                 'lr_critic' : 0.005, # learning rate of the critic networks (main and target) 
-                'hidden_size_actor' : 30, # number of hidden nodes in the neural net associated with the actor
-                'hidden_size_critic' : 50, # number of hidden nodes in the neural net associated with the critic
-                'num_layers_actor' : 7, # number of layers in the neural net associated with actor
-                'num_layers_critic' : 15, # number of layers in the neural net associated with critic
+                'hidden_size_actor' : 16, # number of hidden nodes in the neural net associated with the actor
+                'hidden_size_critic' : 30, # number of hidden nodes in the neural net associated with the critic
+                'num_layers_actor' : 5, # number of layers in the neural net associated with actor
+                'num_layers_critic' : 10, # number of layers in the neural net associated with critic
                 'noise_vol': 2.75, # volatility of exploratory noise
                 'explore_eps': 300, # number of episodes elapsed before performing updates 
                 'start_steps': 600, # number of episodes elapsed before acting according policy and cessating uniform exploration

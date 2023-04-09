@@ -202,8 +202,8 @@ def DDPG(algo_params: dict, env: Environment):
                     update_target_net(critic_main, critic_target, algo_params["tau"])
                     update_target_net(actor_main, actor_target, algo_params["tau"])
             
-        # plot current policy every 100 epochs
-        if m % 500 == 0:
+        # plot current policy every 250 epochs
+        if m % 250 == 0:
             plot_current_policy(env, actor_main, episode_num=m)
             
         avg_rews.append(T.mean(T.stack(rews))) 

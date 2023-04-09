@@ -59,7 +59,7 @@ class Environment():
                 np.sqrt((1 - np.exp(-2*self.params["kappa"]*dt)) / (2*self.params["kappa"]))
         x_tp1 = self.params["theta"] + \
                 (x_t-self.params["theta"]) * np.exp(-self.params["kappa"]*dt) + \
-                eta*T.randn(sizes, device=self.device)
+                eta*T.randn(sizes)
         
         # reward -- change of book value of shares with transaction costs (attempting to recover bang-bang control)
         reward_t = q_t*(x_tp1 - x_t) - (self.params["phi"]*T.pow(q_t - q_tm1, 2))
