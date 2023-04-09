@@ -6,6 +6,7 @@ import pdb
 from models import *
 from envs import *
 from torch.nn import MSELoss 
+from torch.distributions.uniform import Uniform
 from tqdm import tqdm
 from hyperparams import *
 from utils import *
@@ -63,7 +64,7 @@ def plot_current_policy(env: Environment, actor_main: PolicyANN, episode_num: in
     
     
 def update_critic_main(targets: T.tensor, trans_curr_states: T.tensor, trans_acts: T.tensor, \
-                           critic_main: Q_ANN, num_epochs):
+                           critic_main: Q_ANN):
     """
     Update main critic network using labels produced by target network
     and minimizing the average squared Bellman-loss. 
@@ -76,37 +77,32 @@ def update_critic_main(targets: T.tensor, trans_curr_states: T.tensor, trans_act
         num_epochs (int): number of parameter updates 
     """
      
-    for m in range(num_epochs):
-        input = critic_main(T.cat((trans_curr_states, trans_acts), -1))
-        critic_main.optimizer.zero_grad()
-        loss_function = MSELoss()
-        loss = loss_function(targets, input)
-        loss.backward() 
-        critic_main.optimizer.step()
+    input = critic_main(T.cat((trans_curr_states, trans_acts), -1))
+    critic_main.optimizer.zero_grad()
+    loss_function = MSELoss()
+    loss = loss_function(targets, input)
+    loss.backward() 
+    critic_main.optimizer.step()
         
-        if (m+1) % num_epochs == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(m+1, num_epochs, m+1, num_epochs, loss.item()))
-            
-        if critic_main.scheduler.get_last_lr()[0] >= 5e-4:
-            critic_main.scheduler.step()
+    if critic_main.scheduler.get_last_lr()[0] >= 5e-4:
+        critic_main.scheduler.step()
     
     
     
 def update_actor_main(critic_main: Q_ANN, actor_main: PolicyANN, curr_states: T.tensor):
     """ 
-    Update main actor network by computing Monte-Carlo estimate for objective function.
+    Update main actor network via. Monte-Carlo estimate of objective function.
     
     Args:
         critic_main (Q_ANN):  main critic network
         actor_main (PolicyANN): main actor network
         curr_states (T.tensor): current states from mini-batch of transitions
     """
+    # freeze main critic network params
     for param in critic_main.parameters():
         param.requires_grad = False
     
     actions = actor_main(curr_states)
-        
     actor_main.optimizer.zero_grad()
     loss = T.mean(critic_main(T.cat((curr_states, actions), -1)))
     loss.backward()
@@ -114,6 +110,7 @@ def update_actor_main(critic_main: Q_ANN, actor_main: PolicyANN, curr_states: T.
     if actor_main.scheduler.get_last_lr()[0] >= 5e-4:
         actor_main.scheduler.step()
 
+    # un-freeze main critic netwotk params
     for param in critic_main.parameters():
         param.requires_grad = True
 
@@ -126,7 +123,7 @@ def update_target_net(main, target, tau):
     Args:
         main (PolicyANN or Q_ANN): main actor or main critic network
         target (PolicyANN or Q_ANN): target actor or target critic network
-        tau (float): convex combination param
+        tau (float): convex combination param (tau << 1)
     """
     with T.no_grad():
         for p, q in zip(main.parameters(), target.parameters()):
@@ -135,7 +132,7 @@ def update_target_net(main, target, tau):
 
 def DDPG(algo_params: dict, env: Environment):
     """Generate, and train, DDPG model on the environment specifications
-    provided in env and executed with the hyperparams specified in algoparams.
+    provided in 'env' and executed with the hyperparams specified in 'algoparams'.
 
     Args:
         algo_params (dict): Dictionary containing training hyperparams
@@ -143,7 +140,7 @@ def DDPG(algo_params: dict, env: Environment):
                            (price dynamics, max and min inventory levels etc.)
     Returns:
         actor_main (PolicyANN): Trained actor network; learned ANN policy.
-        avg_rews: 
+        avg_rews (T.tensor): 
     """
     # initialize main and target networks
     actor_main = PolicyANN(input_size=3, hidden_size=algo_params["hidden_size_actor"], \
@@ -155,7 +152,10 @@ def DDPG(algo_params: dict, env: Environment):
     
     # initialize replay buffer and exploratory noise process
     replay_buffer = ReplayBuffer(algo_params) 
-    noise_process = OUNoise(kappa=algo_params["noise_rev_int"], sigma=algo_params["noise_vol"]) 
+    noise_process = Noise(sigma=algo_params["noise_vol"]) 
+    
+    # uniform dist. over action space for exploration
+    unif_act = Uniform(T.tensor([env.params["min_q"]]).float(), T.tensor([env.params["max_q"]]).float())
     avg_rews = []
     
     for m in tqdm(range(algo_params["num_eps"])):
@@ -167,10 +167,13 @@ def DDPG(algo_params: dict, env: Environment):
         # populate replay buffer 
         for _ in range(env.params["Ndt"]):
             
-            # take action according to policy with exploratory noise
-            action = T.clamp(actor_main(curr_state) + noise_process.noise(),\
-                                    env.params["min_q"], env.params["max_q"])  
-
+            # If sufficiently many episodes elapsed, take action according to policy with exploratory noise,
+            # otherwise sample uniformly to encourage aggressive exploration early 
+            if m > algo_params["start_steps"]:
+                action = T.clamp(actor_main(curr_state) + noise_process.noise(), env.params["min_q"], env.params["max_q"])  
+            else: 
+                action = unif_act.sample()
+            
             # get new state and reward
             new_state, rew = env.step(curr_state, action) 
             rews.append(rew.detach())
@@ -181,26 +184,26 @@ def DDPG(algo_params: dict, env: Environment):
             # update state
             curr_state = new_state
 
-        # sample mini-batch of transitions 
-        trans_curr_states, trans_acts, trans_rews, trans_new_states = replay_buffer.sample()
-        
-        # compute targets
-        targets = trans_rews + critic_target(T.cat((trans_new_states, actor_target(trans_new_states).detach()), -1)).detach()
-         
-        # update main networks        
-        update_actor_main(critic_main, actor_main, trans_curr_states)
-        
-        # if m % algo_params["main_update_num_eps"] == 0:
-        update_critic_main(targets, trans_curr_states, trans_acts, critic_main, algo_params["critic_main_num_epochs"])     
+            # once buffer sufficiently full, begin updates:
+            if m >= algo_params["explore_eps"] and m % algo_params["update_every"] == 0:
+                
+                for _ in range(env.params["Ndt"]*algo_params["update_every"]):
+                    # sample mini-batch of transitions 
+                    trans_curr_states, trans_acts, trans_rews, trans_new_states = replay_buffer.sample()
+                    
+                    # compute targets
+                    targets = trans_rews + critic_target(T.cat((trans_new_states, actor_target(trans_new_states).detach()), -1)).detach()
+                    
+                    # update main networks   
+                    update_critic_main(targets, trans_curr_states, trans_acts, critic_main)     
+                    update_actor_main(critic_main, actor_main, trans_curr_states)
+                    
+                    # update target networks 
+                    update_target_net(critic_main, critic_target, algo_params["tau"])
+                    update_target_net(actor_main, actor_target, algo_params["tau"])
             
-            
-        # update target networks 
-        if m % algo_params["target_update_num_eps"] == 0:
-            update_target_net(critic_main, critic_target, 1.0)
-            update_target_net(actor_main, actor_target, 1.0)
-        
-        # plot current policy every 20 epochs
-        if m % 20 == 0:
+        # plot current policy every 100 epochs
+        if m % 500 == 0:
             plot_current_policy(env, actor_main, episode_num=m)
             
         avg_rews.append(T.mean(T.stack(rews))) 

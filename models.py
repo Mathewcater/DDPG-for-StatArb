@@ -21,16 +21,12 @@ from torch.distributions.categorical import Categorical
 import pdb
 from envs import Environment
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-
 
 # build a fully-connected neural net for the policy
 class PolicyANN(nn.Module):
     # constructor
     def __init__(self, input_size: int, hidden_size: int, n_layers: int, env: Environment,
-                    learn_rate=0.001, step_size=50, gamma=0.95):
+                    learn_rate=0.004, step_size=50, gamma=0.95):
         super(PolicyANN, self).__init__()
         
         self.input_size = input_size # number of inputs
@@ -58,10 +54,8 @@ class PolicyANN(nn.Module):
         self.instance_norm = nn.InstanceNorm1d(self.hidden_size) # for batch size of 1
 
         # optimizer and scheduler
-        self.optimizer = optim.AdamW(self.parameters(), lr=learn_rate, maximize=True) 
+        self.optimizer = optim.Adam(self.parameters(), lr=learn_rate, maximize=True) 
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=step_size, gamma=gamma)
-
-    
 
     # forward propagation
     def forward(self, x):
@@ -86,7 +80,7 @@ class PolicyANN(nn.Module):
 class Q_ANN(nn.Module):
     # constructor
     def __init__(self, input_size, hidden_size, n_layers, env,
-                    learn_rate=0.001, step_size=50, gamma=0.95):
+                    learn_rate=0.005, step_size=100, gamma=0.95):
         super(Q_ANN, self).__init__()
         
         self.input_size = input_size # number of inputs
@@ -96,19 +90,9 @@ class Q_ANN(nn.Module):
         self.env = env # environment (for normalisation purposes)
 
         # build all layers
-       
         self.layer_in = nn.Linear(self.input_size, self.hidden_size)
         self.hidden_layers = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for i in range(self.n_layers-1)])
         self.layer_out = nn.Linear(self.hidden_size, self.output_size)
-
-        # initializers for weights and biases
-        nn.init.normal_(self.layer_in.weight, mean=0, std=1/np.sqrt(input_size)/2)
-        nn.init.constant_(self.layer_in.bias, 0)
-        for layer in self.hidden_layers:
-            nn.init.normal_(layer.weight, mean=0, std=1/np.sqrt(input_size)/2)
-            nn.init.constant_(layer.bias, 0)
-        nn.init.normal_(self.layer_out.weight, mean=0, std=1/np.sqrt(input_size)/2)
-        nn.init.constant_(self.layer_out.bias, 0)
 
         # batch normalization
         self.batch_norms = nn.ModuleList([nn.BatchNorm1d(self.hidden_size) for _ in range(self.n_layers-1)])
@@ -141,13 +125,12 @@ class Q_ANN(nn.Module):
         
         return Q_val
     
-class OUNoise:
-    """Ornstein-Uhlenbeck exploratory noise.
+class Noise:
+    """Stationary Gaussian Exploratory White Noise
     """
-    def __init__(self, action_dim=1, mu=0.0, kappa=4.25, sigma=2.5):
+    def __init__(self, action_dim=1, mu=0.0, sigma=2.5):
         self.action_dim = action_dim
         self.mu = mu
-        self.kappa = kappa
         self.sigma = sigma
         self.reset()
     
@@ -155,9 +138,7 @@ class OUNoise:
         self.state = T.ones(self.action_dim) * self.mu
         
     def noise(self):
-        x = self.state
-        dx = self.kappa * (self.mu - x) + self.sigma * T.randn(len(x))
-        self.state = x + dx
+        self.state = self.mu + self.sigma*T.randn(len(self.state))
         return self.state
         
         
@@ -174,7 +155,7 @@ class ReplayBuffer:
     def add(self, curr_state, action, rew, new_state):
         """Add the observed transition to the replay buffer
         """
-        # if buffer full, then deque a transition
+        # if buffer full, then deque a transition:
         if len(self.buffer) == self.buffer_capacity:
             self.buffer = self.buffer[1:] 
             
@@ -184,11 +165,11 @@ class ReplayBuffer:
     def sample(self):
         """Sample a mini-batch of transitions from the replay buffer
         """
-        # if buffer smaller than desired batch size, sample entire buffer
+        # if buffer smaller than desired batch size, sample entire buffer:
         if len(self.buffer) < self.buffer_batch_size:
             transitions = T.stack(self.buffer)
             
-        # otherwise, uniformly sample mini-batch of transitions
+        # otherwise, uniformly sample mini-batch of transitions:
         else:
             probs = (T.ones(len(self.buffer))/len(self.buffer)).repeat((self.buffer_batch_size, 1)) 
             dist = Categorical(probs)
@@ -200,21 +181,3 @@ class ReplayBuffer:
         trans_new_states = transitions[:,5:]
         
         return trans_curr_states, trans_acts, trans_rews, trans_new_states     
-    
-
-def plot_noise(num_steps, noise: OUNoise):
-    """Plot the OU noise (visualizer).
-    """
-    fig, ax = plt.subplots(1,1)
-    stats = []
-    for _ in range(num_steps):
-        noise.noise()
-        stats.append(noise.state)
-    
-    ax.plot(T.arange(num_steps), T.stack(stats))
-    fig.savefig('OU Noise')
-    
-if __name__ == '__main__':
-    noise = OUNoise()
-    plot_noise(num_steps=50, noise=noise)
-    

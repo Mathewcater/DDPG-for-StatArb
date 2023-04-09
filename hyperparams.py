@@ -20,21 +20,21 @@ def init_params():
 
     # parameters for the algorithm
     
-    algo_params = {'num_eps' : 1_000, # number of episodes of the whole algorithm
-                'tau' : 0.005, # target network convex comb. update parameter 
-                'buffer_batch_size': 750, # size of minibatches sampled from replay buffer
-                'buffer_capacity': 5000, # max size of replay buffer
-                'critic_main_num_epochs': 1_750, # number of epochs (gred. descent steps) considered in main critic updates
-                'main_update_num_eps': 5, # number of epochs elapsed until main critic is updated
+    algo_params = {'num_eps' : 10_000, # number of episodes of the whole algorithm
+                'tau' : 0.001, # target network convex comb. update parameter 
+                'buffer_batch_size': 128, # size of minibatches sampled from replay buffer
+                'buffer_capacity': 5_000, # max size of replay buffer
+                'update_every': 50, # number of episodes elapsed before updating
                 'target_update_num_eps': 100, # number of epochs elapsed until the target networks are updated
-                'lr_actor' : 0.001, # learning rate of the actor networks (main and target)
-                'lr_critic' : 0.004, # learning rate of the critic networks (main and target) 
-                'hidden_size_actor' : 16, # number of hidden nodes in the neural net associated with the actor
+                'lr_actor' : 0.004, # learning rate of the actor networks (main and target)
+                'lr_critic' : 0.005, # learning rate of the critic networks (main and target) 
+                'hidden_size_actor' : 30, # number of hidden nodes in the neural net associated with the actor
                 'hidden_size_critic' : 50, # number of hidden nodes in the neural net associated with the critic
-                'num_layers_actor' : 5, # number of layers in the neural net associated with actor
+                'num_layers_actor' : 7, # number of layers in the neural net associated with actor
                 'num_layers_critic' : 15, # number of layers in the neural net associated with critic
-                'noise_rev_int': 4.25, # mean reversion intensity of exploratory noise
-                'noise_vol': 2.5, # volatility of exploratory noise
+                'noise_vol': 2.75, # volatility of exploratory noise
+                'explore_eps': 300, # number of episodes elapsed before performing updates 
+                'start_steps': 600, # number of episodes elapsed before acting according polic and cessating uniform exploration
                 } 
 
     return env_params, algo_params
