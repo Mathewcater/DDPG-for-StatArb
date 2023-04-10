@@ -169,7 +169,7 @@ def DDPG(algo_params: dict, env: Environment):
         noise_process.reset()
         rews = []
         
-        # populate replay buffer 
+        # main training loop
         for _ in range(env.params["Ndt"]):
             
             # If sufficiently many episodes elapsed, take action according to policy with exploratory noise,
@@ -210,7 +210,6 @@ def DDPG(algo_params: dict, env: Environment):
         if m % algo_params["save_freq"] == 0:
             plot_current_policy(env, actor_main, episode_num=m)
             
-
         cum_rews.append(T.sum(T.stack(rews))) 
         
     return T.stack(cum_rews), actor_main
