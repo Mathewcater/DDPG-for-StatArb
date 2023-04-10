@@ -140,7 +140,7 @@ def DDPG(algo_params: dict, env: Environment):
                            (price dynamics, max and min inventory levels etc.)
     Returns:
         actor_main (PolicyANN): Trained actor network; learned ANN policy.
-        avg_rews (T.tensor): 
+        cum_rews (T.tensor): 
     """
     # initialize main and target networks
     actor_main = PolicyANN(input_size=3, hidden_size=algo_params["hidden_size_actor"], \
@@ -150,13 +150,18 @@ def DDPG(algo_params: dict, env: Environment):
     actor_target = copy.deepcopy(actor_main)
     critic_target = copy.deepcopy(critic_main)
     
+    # freeze all target networks w.r.t. optimizers
+    for p, q in zip(actor_target.parameters(), critic_target.parameters()):
+        p.requires_grad = False
+        q.requires_grad = False 
+    
     # initialize replay buffer and exploratory noise process
     replay_buffer = ReplayBuffer(algo_params) 
     noise_process = Noise(sigma=algo_params["noise_vol"]) 
     
     # uniform dist. over action space for exploration
     unif_act = Uniform(T.tensor([env.params["min_q"]]).float(), T.tensor([env.params["max_q"]]).float())
-    avg_rews = []
+    cum_rews = []
     
     for m in tqdm(range(algo_params["num_eps"])):
         
@@ -202,10 +207,10 @@ def DDPG(algo_params: dict, env: Environment):
                     update_target_net(critic_main, critic_target, algo_params["tau"])
                     update_target_net(actor_main, actor_target, algo_params["tau"])
             
-        # plot current policy every 250 epochs
-        if m % 250 == 0:
+        if m % algo_params["save_freq"] == 0:
             plot_current_policy(env, actor_main, episode_num=m)
             
-        avg_rews.append(T.mean(T.stack(rews))) 
+
+        cum_rews.append(T.sum(T.stack(rews))) 
         
-    return T.stack(avg_rews), actor_main
+    return T.stack(cum_rews), actor_main
