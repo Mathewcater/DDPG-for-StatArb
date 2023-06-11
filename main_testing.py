@@ -26,7 +26,9 @@ rews, learned_pol = DDPG(algo_params, env)
 # cumulative rewards
 
 ax1.plot(T.arange(algo_params["num_eps"]), rews)
-ax1.set(xlabel='Epochs', ylabel='Cumulative reward', title='Cumulative Reward per Epoch; Learned ANN Policy')    
+ax1.set(xlabel='Epochs', \
+        ylabel='Cumulative reward', \
+        title='Cumulative Reward per Epoch; Learned ANN Policy')    
 fig1.savefig('Avg.pdf')
 
     
