@@ -36,7 +36,7 @@ class PolicyANN(nn.Module):
 
         # build all layers
         self.layer_in = nn.Linear(self.input_size, self.hidden_size)
-        self.hidden_layers = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for i in range(self.n_layers-1)])
+        self.hidden_layers = nn.ModuleList([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.n_layers-1)])
         self.layer_out = nn.Linear(self.hidden_size, self.output_size)
 
         # initializers for weights and biases
