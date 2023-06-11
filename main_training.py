@@ -26,12 +26,14 @@ def plot_current_policy(env: Environment, actor_main: PolicyANN, episode_num: in
         actor_main (PolicyANN): main actor network
         episode_num (int): training step to plot at
     """
-    fig, axs = plt.subplots(1, len(env.spaces["t_space"]), figsize=(10, 2), sharey=True)
+    fig, axs = plt.subplots(1, len(env.spaces["t_space"]), \
+                               figsize=(10, 2), sharey=True)
     curr_learned_pol = actor_main
     
     # plot optimal policies through time
-    test_states = T.cartesian_prod(T.from_numpy(env.spaces["t_space"]).float(),\
-                  T.from_numpy(env.spaces["s_space"]).float(), T.from_numpy(env.spaces["q_space"]).float())
+    test_states = T.cartesian_prod(T.from_numpy(env.spaces["t_space"]).float(), \
+                                   T.from_numpy(env.spaces["s_space"]).float(), \
+                                   T.from_numpy(env.spaces["q_space"]).float())
 
     for k in range(len(env.spaces["t_space"])):
         
@@ -140,7 +142,7 @@ def DDPG(algo_params: dict, env: Environment):
                            (price dynamics, max and min inventory levels etc.)
     Returns:
         actor_main (PolicyANN): Trained actor network; learned ANN policy.
-        cum_rews (T.tensor): 
+        cum_rews (T.tensor): Cumulative rewards tracked for monitoringt training.
     """
     # initialize main and target networks
     actor_main = PolicyANN(input_size=3, hidden_size=algo_params["hidden_size_actor"], \
