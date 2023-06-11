@@ -18,7 +18,10 @@ plt.rcParams.update({
 env_params, algo_params = init_params()
 env = Environment(env_params)
 rews, learned_pol = DDPG(algo_params, env)
-(fig1, ax1), (fig2, ax2), (fig3, axs) = plt.subplots(1, 1, sharey=True), plt.subplots(1, 1, sharey=True), plt.subplots(1, len(env.spaces["t_space"]), figsize=(10, 2), sharey=True)  
+(fig1, ax1), (fig2, ax2), (fig3, axs) = plt.subplots(1, 1, sharey=True), \
+                                        plt.subplots(1, 1, sharey=True), \
+                                        plt.subplots(1, len(env.spaces["t_space"]), \
+                                                         figsize=(10, 2), sharey=True)  
 
 # cumulative rewards
 
