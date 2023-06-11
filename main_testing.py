@@ -31,8 +31,9 @@ fig1.savefig('Avg.pdf')
 
     
 # plot optimal policies through time
-test_states = T.cartesian_prod(T.from_numpy(env.spaces["t_space"]).float(),\
-              T.from_numpy(env.spaces["s_space"]).float(), T.from_numpy(env.spaces["q_space"]).float())
+test_states = T.cartesian_prod(T.from_numpy(env.spaces["t_space"]).float(), \
+                               T.from_numpy(env.spaces["s_space"]).float(), \
+                               T.from_numpy(env.spaces["q_space"]).float())
 
 for k in range(len(env.spaces["t_space"])):
     
