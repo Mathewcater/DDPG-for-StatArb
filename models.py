@@ -159,7 +159,10 @@ class ReplayBuffer:
             self.buffer = self.buffer[1:] 
             
         # add new transition
-        self.buffer.append(T.cat((curr_state.detach(), action.detach(), rew.detach(), new_state.detach())))
+        self.buffer.append(T.cat((curr_state.detach(), \
+                                  action.detach(), \
+                                  rew.detach(), \
+                                  new_state.detach())))
         
     def sample(self):
         """Sample a mini-batch of transitions from the replay buffer
