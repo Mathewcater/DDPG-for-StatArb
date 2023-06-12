@@ -5,11 +5,11 @@ import torch as T
 import pdb
 from models import *
 from envs import *
+from hyperparams import *
+from utils import *
 from torch.nn import MSELoss 
 from torch.distributions.uniform import Uniform
 from tqdm import tqdm
-from hyperparams import *
-from utils import *
 import matplotlib.pyplot as plt
 
 # For reproducibility 
