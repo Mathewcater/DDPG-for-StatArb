@@ -19,7 +19,7 @@ T.manual_seed(54321)
 T.autograd.set_detect_anomaly(True)
 
 def plot_current_policy(env: Environment, actor_main: PolicyANN, episode_num: int):
-    """Plot the current policy aafter given number of episodes (episode_num)
+    """Plot the current policy after given number of episodes (episode_num)
 
     Args:
         env (Environment): environment
