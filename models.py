@@ -75,7 +75,7 @@ class PolicyANN(nn.Module):
         return action
 
 
-# build a fully-connected neural net for the policy
+# build a fully-connected neural net for the Q-function
 class Q_ANN(nn.Module):
     # constructor
     def __init__(self, input_size, hidden_size, n_layers, env,
