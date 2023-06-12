@@ -148,9 +148,13 @@ def DDPG(algo_params: dict, env: Environment):
     """
     # initialize main and target networks
     actor_main = PolicyANN(input_size=3, hidden_size=algo_params["hidden_size_actor"], \
-                           n_layers=algo_params["num_layers_actor"], env=env, learn_rate=algo_params["lr_actor"])
+                                         n_layers=algo_params["num_layers_actor"], \    
+                                         env=env, \
+                                         learn_rate=algo_params["lr_actor"])
     critic_main = Q_ANN(input_size=4, hidden_size=algo_params["hidden_size_critic"], \
-                        n_layers=algo_params["num_layers_critic"], env=env, learn_rate=algo_params["lr_critic"])
+                                      n_layers=algo_params["num_layers_critic"], \
+                                      env=env, \
+                                      learn_rate=algo_params["lr_critic"])
     actor_target = copy.deepcopy(actor_main)
     critic_target = copy.deepcopy(critic_main)
     
