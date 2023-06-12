@@ -71,7 +71,7 @@ def update_critic_main(targets: T.tensor, \
                        critic_main: Q_ANN):
     """
     Update main critic network using labels produced by target network
-    and minimizing the average squared Bellman-loss. 
+    and minimizing the mean squared Bellman-error. 
     
     Args:
         targets (T.tensor): Regression labels from target network
