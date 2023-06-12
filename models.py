@@ -1,10 +1,10 @@
 """
-Models
+Models:
 
 Policy: two fully-connected ANNs (main and target)
 Q-function: two fully-connected ANNs (main and target)
 
-Helper Objects
+Helper Objects:
 
 Replay buffer
 Stationary Gaussian Exploratory Noise
