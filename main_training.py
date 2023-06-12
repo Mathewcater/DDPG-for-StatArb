@@ -65,8 +65,10 @@ def plot_current_policy(env: Environment, actor_main: PolicyANN, episode_num: in
     
     
     
-def update_critic_main(targets: T.tensor, trans_curr_states: T.tensor, trans_acts: T.tensor, \
-                           critic_main: Q_ANN):
+def update_critic_main(targets: T.tensor, \
+                       trans_curr_states: T.tensor, \
+                       trans_acts: T.tensor, \
+                       critic_main: Q_ANN):
     """
     Update main critic network using labels produced by target network
     and minimizing the average squared Bellman-loss. 
