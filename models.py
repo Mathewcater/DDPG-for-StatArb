@@ -47,11 +47,7 @@ class PolicyANN(nn.Module):
             nn.init.constant_(layer.bias, 0)
         nn.init.normal_(self.layer_out.weight, mean=0, std=1/np.sqrt(input_size)/2)
         nn.init.constant_(self.layer_out.bias, 0)
-        
-        # batch normalization
-        self.batch_norms = nn.ModuleList([nn.BatchNorm1d(self.hidden_size) for _ in range(self.n_layers-1)])
-        self.instance_norm = nn.InstanceNorm1d(self.hidden_size) # for batch size of 1
-
+       
         # optimizer and scheduler
         self.optimizer = optim.Adam(self.parameters(), lr=learn_rate, maximize=True) 
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=step_size, gamma=gamma)
